@@ -112,13 +112,13 @@ class Magento
             } else {
                 $blockStruct['template'] = '';
             }
-            
+
             if (method_exists($block, 'getViewVars')) {
                 $blockStruct['context'] = $block->getViewVars();
             } else {
                 $blockStruct['context'] = null;
             }
-            
+
             if (!$block->getParentBlock()) {
                 $blocks[] = $blockStruct;
                 end($blocks);
@@ -219,8 +219,7 @@ class Magento
     private function getObjectManager()
     {
         if (is_null($this->objectManager)) {
-            $objectManagerFactory = \Magento\Framework\App\Bootstrap::createObjectManagerFactory(BP, []);
-            $this->objectManager = $objectManagerFactory->create([]);
+            $this->objectManager = $GLOBALS['bootstrap']->getObjectManager();
         }
 
         return $this->objectManager;
@@ -239,7 +238,7 @@ class Magento
         $eventName = $context['functionArgs'][0];
 
         $this->registeredEvents[$eventName]['observers'] =
-                is_array($context['returnValue']) ? $context['returnValue'] : [];
+            is_array($context['returnValue']) ? $context['returnValue'] : [];
     }
 
     /**
@@ -322,13 +321,12 @@ class Magento
         foreach (['global', 'frontend', 'adminhtml' ] as $eventArea) {
             $this->getObjectManager()->get('Magento\Framework\Config\ScopeInterface')->setCurrentScope($eventArea);
             $eventConfig = $this->getObjectManager()->get('Magento\Framework\Event\Config');
-            $events = array_filter(
-                $eventConfig->getObservers(null),
-                function ($eventsName) use ($collectedEventsNames) {
-                    return !in_array($eventsName, $collectedEventsNames);
-                },
-                ARRAY_FILTER_USE_KEY
-            );
+            $events = $eventConfig->getObservers(null);
+            foreach ($events as $eventsName => $eventVal) {
+                if (in_array($eventsName, $collectedEventsNames)) {
+                    unset($events[$eventsName]);
+                }
+            }
             $count += count($events);
             $this->processEventObservers($events, $eventArea, $storage['observers']);
             $collectedEventsNames = array_merge($collectedEventsNames, array_keys($events));
@@ -431,8 +429,8 @@ class Magento
                 'instance' => $inherited[$type][$code]['instance'],
                 'typeFile' => $this->getClassFile($type),
                 'instanceFile' => $this->getClassFile($inherited[$type][$code]['instance']),
-
             ];
+            $storage['plugins'][]  = $this->pluginsInfo[$key];
         }
     }
 
@@ -460,9 +458,9 @@ class Magento
         $this->interceptedMethods[$key]['method'] = $method;
         $this->interceptedMethods[$key]['duration'] =
             isset($this->interceptedMethods[$key]['duration'])
-            ?
+                ?
                 $this->interceptedMethods[$key]['duration'] + $context['durationInclusive']
-            :
+                :
                 $context['durationInclusive'];
 
         foreach($pluginInfo as $listenerCode => $pluginData) {
@@ -526,9 +524,6 @@ class Magento
         //Events
         $storage['mevents'] = [];
         $this->storeEvents($storage['mevents']);
-
-        //Plugins
-        $storage['plugins'] = $this->pluginsInfo;
 
         //Intercepted methods
         $storage['intercepted'] = $this->interceptedMethods;
