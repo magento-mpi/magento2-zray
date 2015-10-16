@@ -1,0 +1,13 @@
+{
+  "name" : "magento2",
+  "display_name" : "Magento2",
+  "version" : "1.0.0",
+  "type": ["zray", "route"],
+  "logo": "logo.png",
+  "readme": "README.md",
+  "dependencies": {
+    "plugin": {
+        "min": "1.0.0"
+    }
+  }
+}
