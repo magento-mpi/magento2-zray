@@ -21,6 +21,10 @@ use Magento\Framework\App\Filesystem\DirectoryList;
  */
 class Magento
 {
+    /**
+     * Observer execute method name
+     */
+    const OBSERVER_METHOD = 'execute';
 
     /**
      * @var array
@@ -251,11 +255,10 @@ class Magento
      */
     public function callObserverMethodStart($context, & $storage)
     {
-        $method = $context['functionArgs'][1];
-        $observerData = $context['functionArgs'][2]->getData();
+        $observerData = $context['functionArgs'][1]->getData();
         $eventName = $observerData['event']->getName();
         $className = get_class($context['functionArgs'][0]);
-        $key = $this->getObserverKey($eventName, $className, $method);
+        $key = $this->getObserverKey($eventName, $className, self::OBSERVER_METHOD);
 
         $this->observersProfiles[$key] = [
             'duration' => microtime(true),
@@ -274,11 +277,10 @@ class Magento
      */
     public function callObserverMethodEnd($context, & $storage)
     {
-        $method = $context['functionArgs'][1];
-        $observerData = $context['functionArgs'][2]->getData();
+        $observerData = $context['functionArgs'][1]->getData();
         $eventName = $observerData['event']->getName();
         $className = get_class($context['functionArgs'][0]);
-        $key = $this->getObserverKey($eventName, $className, $method);
+        $key = $this->getObserverKey($eventName, $className, self::OBSERVER_METHOD);
 
         $this->observersProfiles[$key]['duration'] = microtime(true) - $this->observersProfiles[$key]['duration'];
     }
@@ -347,7 +349,6 @@ class Magento
         foreach ($areaEvents as $eventName => $observers) {
             foreach ($observers as $observerName => $observer) {
                 $class = $observer['instance'];
-                $method = $observer['method'];
 
                 $observerData = [
                     'area' => $eventArea,
@@ -355,8 +356,8 @@ class Magento
                     'observer' => $observerName,
                     'class' => $class,
                     'classFile' => $this->getClassFile($class),
-                    'methodLine' => $this->getMethodLine($class, $method),
-                    'method' => $method
+                    'methodLine' => $this->getMethodLine($class, self::OBSERVER_METHOD),
+                    'method' => self::OBSERVER_METHOD
                 ];
 
                 $storage[] = $observerData;
@@ -376,8 +377,7 @@ class Magento
         foreach ($this->registeredEvents as $eventName => $eventData) {
             $observers = [];
             foreach ($eventData['observers'] as $name => &$observer) {
-
-                $key = $this->getObserverKey($eventName, $observer['instance'], $observer['method']);
+                $key = $this->getObserverKey($eventName, $observer['instance'], self::OBSERVER_METHOD);
                 if (isset($this->observersProfiles[$key])) {
                     $observer['duration'] = number_format($this->observersProfiles[$key]['duration'], 3);
                     $observer['args'] = $this->observersProfiles[$key]['args'];
@@ -388,8 +388,8 @@ class Magento
                     'name' => $name,
                     'class' => $observer['instance'],
                     'classFile' => $this->getClassFile($observer['instance']),
-                    'method' => $observer['method'],
-                    'methodLine' => $this->getMethodLine($observer['instance'], $observer['method']),
+                    'method' => self::OBSERVER_METHOD,
+                    'methodLine' => $this->getMethodLine($observer['instance'], self::OBSERVER_METHOD),
                     'args' => $observer['args'],
                     'area' => isset($observer['area']) ? $observer['area'] : '',
                     'duration' => $observer['duration']
